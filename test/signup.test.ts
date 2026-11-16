@@ -909,6 +909,20 @@ describe('GET /signup/details', () => {
     expect(await verifySignup(payload, { token, password: PW }, req())).toEqual({ status: 'pending' })
   })
 
+  it('counts against the verify limit, answers 429 as verify does, and a refused read leaves the link alone', async () => {
+    const email = fresh()
+    await ask(email)
+    const token = tokenFrom(email)
+    limiter = (kind) => kind !== 'verify'
+    const refused = await getJson(token)
+    limiter = null
+    expect(refused.status).toBe(429)
+    expect(refused.body).toEqual({ error: { code: 'busy', message: expect.any(String) } })
+    expect([(await requests(email))[0]!.status, (await users(email)).length]).toEqual(['unverified', 0])
+    expect((await getJson(token)).status).toBe(200)
+    expect(await verifySignup(payload, { token, password: PW }, req())).toEqual({ status: 'pending' })
+  })
+
   it('gives the same refusal for unknown, used and expired tokens', async () => {
     const used = fresh()
     await ask(used)
