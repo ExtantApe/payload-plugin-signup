@@ -104,6 +104,19 @@ export const signupEndpoints: Endpoint[] = [
     },
   },
   {
+    // The same details as the confirm page, as JSON, for a site's own page. Reads only: the link still works.
+    path: '/signup/details',
+    method: 'get',
+    handler: async (req) => {
+      try {
+        const token = new URL(req.url ?? 'http://x').searchParams.get('token') ?? ''
+        return json(await readSignupRequest(req.payload, { token }, req))
+      } catch (error) {
+        return failure(error, req)
+      }
+    },
+  },
+  {
     path: '/signup/verify',
     method: 'post',
     handler: async (req) => {

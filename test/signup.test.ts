@@ -887,3 +887,40 @@ describe('checks can’t reach the response except through setCookies (2026-11-1
     expect([(await users(atConfirm)).length, (await requests(atConfirm))[0]!.status, mailTo(atConfirm).length]).toEqual([0, 'unverified', sent])
   })
 })
+
+describe('GET /signup/details', () => {
+  const getJson = async (token: string) => {
+    const endpoint = payload.config.endpoints!.find((e) => e.path === '/signup/details' && e.method === 'get')!
+    const res = await endpoint.handler({ payload, headers: new Headers({ 'x-forwarded-for': '203.0.113.9' }), url: `https://site.example.com/api/signup/details?token=${encodeURIComponent(token)}` } as never)
+    return { status: res.status, body: await res.json() }
+  }
+
+  it('returns only the safe fields, the same twice, and the link still confirms', async () => {
+    const email = fresh()
+    await submitSignup(payload, { email, details: { name: 'Made Up', country: 'US', school: 'Made-up School', staffNote: 'internal' }, answers: { birthYear: 2015 } }, req())
+    const token = tokenFrom(email)
+    const first = await getJson(token)
+    expect(first.status).toBe(200)
+    expect(Object.keys(first.body).sort()).toEqual(['details', 'email'])
+    expect(first.body.email).toBe(email)
+    expect(JSON.stringify(first.body)).not.toMatch(/Made-up School|internal|2015|"id"|tokenHash/)
+    expect(await getJson(token)).toEqual(first)
+    expect([(await requests(email))[0]!.status, (await users(email)).length]).toEqual(['unverified', 0])
+    expect(await verifySignup(payload, { token, password: PW }, req())).toEqual({ status: 'pending' })
+  })
+
+  it('gives the same refusal for unknown, used and expired tokens', async () => {
+    const used = fresh()
+    await ask(used)
+    const usedToken = tokenFrom(used)
+    await verifySignup(payload, { token: usedToken, password: PW }, req())
+    const old = fresh()
+    await ask(old)
+    const oldToken = tokenFrom(old)
+    const [r] = await requests(old)
+    await payload.update({ collection: 'signup-requests' as never, id: r!.id, data: { tokenExpires: new Date(Date.now() - 1000).toISOString() } as never, overrideAccess: true, context: { signupInternal: true } })
+    const answers = [await getJson('x'.repeat(43)), await getJson(usedToken), await getJson(oldToken), await getJson('')]
+    for (const a of answers) expect(a).toEqual({ status: 400, body: answers[0]!.body })
+    expect(answers[0]!.body).toEqual({ error: { code: 'badLink', message: expect.any(String) } })
+  })
+})

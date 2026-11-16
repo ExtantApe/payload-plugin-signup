@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- New: `GET /api/signup/details?token=` returns `{ email, details: [{ name, label, value }] }` as JSON, for a site's own confirm page. It is `readSignupRequest` over HTTP: it only reads, so the link still works, and it shows only the email and the `confirmShows` fields (no ids, hidden or read-restricted fields, check-only answers or what checks set). Unknown, used and expired tokens get the same 400 `badLink`. Reads count against the `verify` rate limit. The built-in confirm page and `readSignupRequest` already did this in 0.1.1.
+
+Tested: 2 new integration tests on a real MongoDB in memory (safe fields only, same answer twice, the link still confirms after reading; the same refusal for unknown, used, expired and empty tokens). Not tested: a real site, a browser client reading the endpoint.
+
 ## 0.1.1 (2026-11-11)
 
 - Fixed: `POST /api/signup/request` handed checks and the rate limiter a copy of the request without its headers, so a check that read them (Age Gate's) refused everyone with 503 `checkFailed`, and every visitor shared one "unknown" rate-limit count, which one person could use up for the whole site. Checks, limits, the human check and emails now get the request itself, and `verifySignup` too. Checks are typed to take the full `PayloadRequest` (checks that take less still fit). New: a check may return `setCookies`, which the endpoint sets on its response, refusals included, and `submitSignup` hands back for a site's own form. Tested with a real Payload and MongoDB in memory; not on a real site.
