@@ -4,10 +4,10 @@ Newest first.
 
 ## 2026-11-16: reading a request by token over HTTP
 
-Suite: 55 tests before, 57 after (`npx vitest run`).
+Suite: 55 tests before, 58 after (`npx vitest run`).
 
 - **The gap.** `readSignupRequest` and the confirm page already read without consuming the link (covered), but a site with its own client-side page had no HTTP way to read the details.
-- **Tests added.** `GET /signup/details`: only `email` and `details` come back, with no ids, unlisted or restricted fields, or check-only answers; two reads are equal; the link still confirms after; unknown, used, expired and empty tokens give the identical 400 `badLink`.
+- **Tests added.** `GET /signup/details`: the verify limit gives 429 and a refused read leaves the link working; only `email` and `details` come back, with no ids, unlisted or restricted fields, or check-only answers; two reads are equal; the link still confirms after; unknown, used, expired and empty tokens give the identical 400 `badLink`.
 - **Skipped.** Token comparison is a lookup on a keyed hash, the same path as confirming, so no separate timing test. Mutation checks not run for this small change.
 
 ## 2026-11-11: the security read on d2e758a
