@@ -87,6 +87,7 @@ type Check = (args: { data; answers; email; req: PayloadRequest; payload }) =>
 | `GET /api/signup/mode` | | `{ mode, accepting, message }` |
 | `POST /api/signup/request` | `{ email, details, answers?, humanToken? }` | 202 `{ ok, message }`, or an error `{ error: { code, message } }`, either with any cookies the checks set |
 | `GET /api/signup/verify?token=` | | A small page: what was asked for (email and details), then choose a password and confirm |
+| `GET /api/signup/details?token=` | | `{ email, details: [{ name, label, value }] }` for your own confirm page: only the email and the `confirmShows` fields, no ids, and it never uses up the link. A used, expired or made-up token all get the same 400 `badLink`. Counts against the `verify` rate limit |
 | `POST /api/signup/verify` | `{ token, password }` as JSON, or the page's form (`token`, `password`, `confirm`) | JSON `{ status: 'pending' or 'active' }`, or a page |
 
 Error codes: `closed`, `inviteOnly`, `email`, `password`, `passwordMismatch` (the page only), `refused`, `checkFailed`, `human`, `busy`, `badLink`, `hasAccount` (an account was made for the address since they asked). The same functions are exported for your own pages: `submitSignup`, `verifySignup`, `currentMode`, and `readSignupRequest` to show what was asked for on your confirm page (it only reads; the link still works). The confirm page shows only the email and the fields you list in `confirmShows` (default none), because a mistyped address sends the link to a stranger. Hidden fields and fields with their own read access never show.
