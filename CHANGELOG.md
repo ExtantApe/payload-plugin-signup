@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Fix: with `scopeField`, a sign-up link now works only on the site it was asked on. Showing a request (`readSignupRequest`, `GET /signup/details`) and confirming it match the request's site from `scopeFor` as well as the token. A link opened on another site, or where `scopeFor` gives no site or throws, gets the same `badLink` refusal as an unknown link. Without `scopeField` nothing changes.
+
+  Tested: 3 new integration tests on a real MongoDB in memory with two made-up sites (the site is recorded; a link neither shows nor confirms on the other site, makes no account, and still works on its own; no site and a throwing `scopeFor` refuse). Not tested: a real multi-tenant site.
+
 - New: `GET /api/signup/details?token=` returns `{ email, details: [{ name, label, value }] }` as JSON, for a site's own confirm page. It is `readSignupRequest` over HTTP: it only reads, so the link still works, and it shows only the email and the `confirmShows` fields (no ids, hidden or read-restricted fields, check-only answers or what checks set). Unknown, used and expired tokens get the same 400 `badLink`. Reads count against the `verify` rate limit. The built-in confirm page and `readSignupRequest` already did this in 0.1.1.
 
 Tested: 3 new integration tests on a real MongoDB in memory (the verify limit answers 429 and a refused read leaves the link alone; safe fields only, same answer twice, the link still confirms after reading; the same refusal for unknown, used, expired and empty tokens). Not tested: a real site, a browser client reading the endpoint.
