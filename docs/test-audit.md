@@ -2,6 +2,14 @@
 
 Newest first.
 
+## 2026-11-22: token lookups match the site (K5040)
+
+Suite: 58 tests before, 61 after (`npx vitest run`).
+
+- **The gap.** With `scopeField`, a request recorded its site, but showing and confirming it looked the token up on its own, so a link from one site worked on another. No test used `scopeField` at all.
+- **Tests added** (`test/scope.test.ts`, its own config with two made-up sites): the site is recorded; a link neither shows nor confirms on the other site, makes no account, leaves the request unverified, and still works on its own site; no site and a `scopeFor` that throws both refuse with `badLink` (fails closed). With the fix taken out, the two refusal tests fail.
+- **Skipped.** `linkUsed` (the wait after two confirms race) stays unscoped on purpose: it only decides which refusal to show, and scoping it would report another site's open link as used.
+
 ## 2026-11-16: reading a request by token over HTTP
 
 Suite: 55 tests before, 58 after (`npx vitest run`).

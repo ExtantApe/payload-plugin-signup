@@ -31,7 +31,7 @@ Sign-up for Payload: open, approval, invite-only or closed, switched in the admi
 
 **Works with:**
 - **Age Gate:** its `ageGateCheck` goes in `checks`. A too-young person is refused, a minor is flagged in the queue, and `minorUntil` is written to the new account. The birth month and year stay in `answers` and are never stored. Its "stay blocked" cookie comes back through `setCookies`, from Age Gate's next release. Age Gate 0.1.x set it on `req.responseHeaders`, which Sign-up doesn't pass on (see [Checks](#checks)), so with 0.1.x the cookie is not set.
-- **A tenant plugin** (such as Payload's multi-tenant plugin): pass `scopeField` and `scopeFor`, and add `signup-requests` to its collections, so each site sees its own queue.
+- **A tenant plugin** (such as Payload's multi-tenant plugin): pass `scopeField` and `scopeFor`, and add `signup-requests` to its collections, so each site sees its own queue. A link then works only on the site it was asked on.
 
 **Family:** It's part of the **Identity** family (a working draft): plugins designed to sit together for accounts and access. Age Gate is the member it's wired to today.
 

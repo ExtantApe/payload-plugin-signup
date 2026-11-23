@@ -244,7 +244,9 @@ export async function readSignupRequest(
   const bad = new SignupError('badLink', 'This link has expired or was already used. You can ask again from the sign-up page.')
   const token = input?.token
   if (typeof token !== 'string' || token.length < 20 || token.length > 200) throw bad
-  const where: Where = { and: [{ tokenHash: { equals: hashToken(payload.secret, token) } }, { status: { equals: 'unverified' } }] }
+  const scoped = await linkScope(o, r)
+  if (!scoped) throw bad
+  const where: Where = { and: [{ tokenHash: { equals: hashToken(payload.secret, token) } }, { status: { equals: 'unverified' } }, ...scoped] }
   const request = ((await payload.find({ collection: o.requests as CollectionSlug, where, limit: 1, pagination: false, ...sys, req: asReq(payload, r) })).docs as Doc[])[0]
   if (!request || !request.tokenExpires || new Date(request.tokenExpires).getTime() < Date.now()) throw bad
   const stored = (request.details ?? {}) as Record<string, unknown>
@@ -256,6 +258,21 @@ export async function readSignupRequest(
     if (value !== null) details.push({ name: field.name, label: labelOf(field), value })
   }
   return { email: request.email as string, details }
+}
+
+/**
+ * A link works only on the site it was asked on (K5040): with `scopeField`, token lookups also match the request's site
+ * from `scopeFor`. No site, or a `scopeFor` that throws, gives null and the caller refuses the link as unknown, so a
+ * link from one site never confirms or shows a request on another. Without `scopeField`, nothing is added.
+ */
+async function linkScope(o: ReturnType<typeof signupOf>, r: Req): Promise<Where[] | null> {
+  if (!o.scopeField) return []
+  try {
+    const scope = await (o.scopeFor?.(r) ?? null)
+    return scope === null || scope === undefined ? null : [{ [o.scopeField]: { equals: scope } }]
+  } catch {
+    return null
+  }
 }
 
 export type VerifyInput = { token?: unknown; password?: unknown }
@@ -279,6 +296,8 @@ export async function verifySignup(payload: Payload, input: VerifyInput, req: Re
   if (password.length < o.minPasswordLength) throw new SignupError('password', `Please choose a password of at least ${o.minPasswordLength} characters.`)
   if (password.length > 256) throw new SignupError('password', 'Please choose a password of 256 characters or fewer.')
   const { mode } = await currentMode(payload)
+  const scoped = await linkScope(o, r)
+  if (!scoped) throw bad
 
   // Cookies confirm checks ask for go out with the answer, refusals included, as at request time.
   const setCookies: string[] = []
@@ -286,7 +305,7 @@ export async function verifySignup(payload: Payload, input: VerifyInput, req: Re
   let queued: Req | null = null
   const result = await transaction(payload, r, async (tx) => {
     const rq = asReq(payload, tx)
-    const where: Where = { and: [{ tokenHash: { equals: hashToken(payload.secret, token) } }, { status: { equals: 'unverified' } }] }
+    const where: Where = { and: [{ tokenHash: { equals: hashToken(payload.secret, token) } }, { status: { equals: 'unverified' } }, ...scoped] }
     const request = ((await payload.find({ collection: o.requests as CollectionSlug, where, limit: 1, pagination: false, ...sys, req: rq })).docs as Doc[])[0]
     if (!request || !request.tokenExpires || new Date(request.tokenExpires).getTime() < Date.now()) throw bad
     // An account made for this address since they asked (an invitation, say): theirs already; nothing to make.
