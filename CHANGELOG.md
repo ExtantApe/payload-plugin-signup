@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.0 (2026-11-26)
 
 - Fix: with `scopeField`, a sign-up link now works only on the site it was asked on. Showing a request (`readSignupRequest`, `GET /signup/details`) and confirming it match the request's site from `scopeFor` as well as the token. A link opened on another site, or where `scopeFor` gives no site or throws, gets the same `badLink` refusal as an unknown link. Without `scopeField` nothing changes.
 
